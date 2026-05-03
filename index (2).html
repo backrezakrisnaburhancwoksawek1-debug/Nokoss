@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id" x-data="nokosApp()">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nokos WhatsApp V2 - Official</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        [x-cloak] { display: none !important; }
+        .glass { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
+        .dark .glass { background: rgba(15, 23, 42, 0.8); }
+        .floating-order { animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    </style>
+</head>
+<body :class="darkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'" class="transition-colors duration-300">
+
+    <template x-if="!isLoggedIn">
+        <div class="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900 p-4">
+            <div class="w-full max-w-md bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8">
+                <div class="text-center mb-8">
+                    <div class="inline-block p-4 bg-green-500 rounded-2xl mb-4">
+                        <i class="fab fa-whatsapp text-4xl text-white"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold" x-text="authMode === 'login' ? 'Masuk Nokos V2' : 'Daftar Akun Baru'"></h2>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] font-bold uppercase opacity-50 ml-1 text-black dark:text-white">Nomor telepon</label>
+                        <input type="number" x-model="authData.phone" placeholder="nomor anda" class="w-full p-4 rounded-xl bg-gray-100 dark:bg-gray-700 border-none outline-none focus:ring-2 focus:ring-green-500 text-black dark:text-white">
+                    </div>
+                    <template x-if="authMode === 'register'">
+                        <div>
+                            <label class="text-[10px] font-bold uppercase opacity-50 ml-1 text-black dark:text-white">Nama Lengkap</label>
+                            <input type="text" x-model="authData.name" placeholder="Nama Anda" class="w-full p-4 rounded-xl bg-gray-100 dark:bg-gray-700 border-none outline-none focus:ring-2 focus:ring-green-500 text-black dark:text-white">
+                        </div>
+                    </template>
+                    <div>
+                        <label class="text-[10px] font-bold uppercase opacity-50 ml-1 text-black dark:text-white">Kata Sandi</label>
+                        <input type="password" x-model="authData.password" placeholder="******" class="w-full p-4 rounded-xl bg-gray-100 dark:bg-gray-700 border-none outline-none focus:ring-2 focus:ring-green-500 text-black dark:text-white">
+                    </div>
+                    <button @click="handleAuth()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95">
+                        <span x-text="authMode === 'login' ? 'MASUK' : 'DAFTAR SEKARANG'"></span>
+                    </button>
+                    <p class="text-center text-sm mt-4">
+                        <button @click="authMode = authMode === 'login' ? 'register' : 'login'" class="text-blue-500 font-medium">
+                            <span x-text="authMode === 'login' ? 'Belum punya akun? Daftar' : 'Sudah punya akun? Login'"></span>
+                        </button>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template x-if="isLoggedIn">
+        <div class="min-h-screen">
+            <header class="fixed top-0 w-full z-50 glass border-b border-gray-200 dark:border-gray-800 p-4">
+                <div class="flex justify-between items-center max-w-4xl mx-auto">
+                    <h1 class="font-black text-xl italic text-green-500">NOKOS V2</h1>
+                    <div class="flex items-center gap-3">
+                        <div class="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg text-right">
+                            <p class="text-[9px] opacity-50 leading-none">Saldo</p>
+                            <p class="font-bold text-sm text-green-500">Rp <span x-text="formatRupiah(user.saldo)"></span></p>
+                        </div>
+                        <button @click="darkMode = !darkMode" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
+                            <i :class="darkMode ? 'fas fa-sun' : 'fas fa-moon'"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="pt-24 pb-32 px-4 max-w-4xl mx-auto">
+                <template x-if="view === 'home'">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <template x-for="n in countries" :key="n.name">
+                            <div @click="buyNumber(n)" class="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 active:scale-95 transition-all cursor-pointer">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-3xl" x-text="n.flag"></span>
+                                    <div><p class="font-bold text-sm" x-text="n.name"></p><p class="text-[10px] opacity-40" x-text="n.code"></p></div>
+                                </div>
+                                <p class="font-bold text-green-500">Rp <span x-text="formatRupiah(n.price)"></span></p>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <template x-if="view === 'topup'">
+                    <div class="space-y-4">
+                        <div class="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl text-xs">
+                            <p class="text-red-500 font-bold mb-1 uppercase text-[10px]">Peringatan!</p>
+                            Transfer ke: <span class="font-bold">082165026881</span> (Min Rp 10.000).
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
+                            <label class="text-[10px] font-bold uppercase opacity-50">Nominal Deposit</label>
+                            <input type="number" x-model="topupAmount" placeholder="10000" class="w-full p-4 mt-2 rounded-xl bg-gray-100 dark:bg-gray-700 outline-none text-black dark:text-white">
+                            <button @click="confirmDeposit()" class="w-full mt-4 bg-blue-600 text-white font-bold py-4 rounded-xl">KONFIRMASI BAYAR</button>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="view === 'referral'">
+                    <div class="space-y-4">
+                        <div class="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-3xl text-white">
+                            <p class="text-xs opacity-70">Total Komisi</p>
+                            <h2 class="text-3xl font-black">Rp <span x-text="formatRupiah(user.refBalance)"></span></h2>
+                            <p class="text-xs mt-2">Teman diundang: <span x-text="user.refCount"></span></p>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border dark:border-gray-700">
+                            <h4 class="font-bold text-sm mb-3 underline">Info Komisi:</h4>
+                            <p class="text-[11px]">✅ Daftar Baru: <span class="text-green-500 font-bold">Rp 1.500</span></p>
+                            <p class="text-[11px]">🛒 Beli Nomor: <span class="text-green-500 font-bold">Rp 500</span></p>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border dark:border-gray-700">
+                            <p class="text-[10px] font-bold uppercase mb-2">Link Undangan Anda</p>
+                            <div class="flex gap-2">
+                                <input readonly :value="'https://nokosv2.id/register?ref=' + user.phone" class="flex-1 p-3 text-[11px] rounded-xl bg-gray-50 dark:bg-gray-900 border-none outline-none font-mono text-blue-500">
+                                <button @click="navigator.clipboard.writeText('https://nokosv2.id/register?ref=' + user.phone); alert('Link disalin!')" class="bg-blue-600 text-white px-4 rounded-xl text-xs active:scale-90">Salin</button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="view === 'history'">
+                    <div class="space-y-2">
+                        <template x-for="h in history" :key="h.id">
+                            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl flex justify-between items-center text-sm border dark:border-gray-700 text-black dark:text-white">
+                                <div><p class="font-bold" x-text="h.type"></p><p class="text-[10px] opacity-40" x-text="h.date"></p></div>
+                                <span :class="h.status === 'Sukses' ? 'text-green-500' : 'text-yellow-500'" class="font-bold text-xs" x-text="h.status"></span>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </main>
+
+            <div x-show="activeOrder" class="fixed inset-x-0 bottom-24 z-[70] px-4">
+                <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border-2 border-green-500 p-5 floating-order text-black dark:text-white">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-xl font-black text-green-500" x-text="activeOrder?.number"></h4>
+                        <button @click="refund()" class="bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-lg">REFUND</button>
+                    </div>
+                    <div class="bg-gray-100 dark:bg-gray-900 p-4 rounded-xl text-center">
+                        <p class="text-[10px] opacity-50 uppercase font-bold">KODE OTP</p>
+                        <p class="text-2xl font-mono font-black tracking-widest text-blue-500" x-text="activeOrder?.otp || 'Tunggu...'"></p>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="fixed bottom-0 w-full glass border-t border-gray-200 dark:border-gray-800 p-4 text-black dark:text-white">
+                <div class="flex justify-between max-w-4xl mx-auto">
+                    <button @click="view = 'home'" :class="view === 'home' ? 'text-green-500' : 'opacity-40'" class="flex flex-col items-center"><i class="fas fa-home"></i><span class="text-[10px]">Home</span></button>
+                    <button @click="view = 'topup'" :class="view === 'topup' ? 'text-green-500' : 'opacity-40'" class="flex flex-col items-center"><i class="fas fa-plus-circle"></i><span class="text-[10px]">Topup</span></button>
+                    <button @click="view = 'history'" :class="view === 'history' ? 'text-green-500' : 'opacity-40'" class="flex flex-col items-center"><i class="fas fa-receipt"></i><span class="text-[10px]">Order</span></button>
+                    <button @click="view = 'referral'" :class="view === 'referral' ? 'text-green-500' : 'opacity-40'" class="flex flex-col items-center"><i class="fas fa-users"></i><span class="text-[10px]">Referral</span></button>
+                    <button @click="logout()" class="text-red-500 flex flex-col items-center"><i class="fas fa-sign-out-alt"></i><span class="text-[10px]">Keluar</span></button>
+                </div>
+            </nav>
+        </div>
+    </template>
+
+    <script>
+        function nokosApp() {
+            return {
+                darkMode: true, isLoggedIn: false, authMode: 'login', view: 'home', topupAmount: '', activeOrder: null,
+                authData: { phone: '', name: '', password: '' },
+                user: JSON.parse(localStorage.getItem('user_data')) || { phone: '', name: '', password: '', saldo: 0, refCount: 0, refBalance: 0 },
+                history: JSON.parse(localStorage.getItem('user_history')) || [],
+                
+                init() {
+                    if (localStorage.getItem('isLoggedIn') === 'true') this.isLoggedIn = true;
+                    this.$watch('user', (val) => localStorage.setItem('user_data', JSON.stringify(val)));
+                    this.$watch('history', (val) => localStorage.setItem('user_history', JSON.stringify(val)));
+                },
+
+                // FUNGSI TELEGRAM BOT (Ganti TOKEN & ID di sini)
+                async confirmDeposit() {
+                    const am = parseInt(this.topupAmount);
+                    if(am < 10000 || am > 4000000) return alert('Deposit 10rb - 4jt!');
+
+                    const TOKEN = '8667540083:AAFXYp918F_J5gq2Nu3kvijJjxkvhd0c-ho'; // GANTI INI
+                    const CHAT_ID = '8142203626'; // GANTI INI
+                    const text = `🚀 *DEPOSIT BARU V2*\n\n👤 Nama: ${this.user.name}\n📱 WA: ${this.user.phone}\n💰 Nominal: Rp ${this.formatRupiah(am)}\n\n_Mohon cek mutasi Boss!_`;
+
+                    try {
+                        await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ chat_id: CHAT_ID, text: text, parse_mode: 'Markdown' })
+                        });
+                        alert('Konfirmasi Terkirim ke Admin!');
+                        this.history.unshift({ id: Date.now(), type: 'Deposit Saldo', date: new Date().toLocaleString(), status: 'Pending' });
+                        this.topupAmount = ''; this.view = 'history';
+                    } catch (e) { alert('Gagal hubungi bot!'); }
+                },
+
+                handleAuth() {
+                    if(!this.authData.phone || !this.authData.password) return alert('Isi data!');
+                    if(this.authMode === 'register') {
+                        this.user.phone = this.authData.phone; this.user.name = this.authData.name; this.user.password = this.authData.password;
+                        alert('Daftar Sukses! Silahkan Login.'); this.authMode = 'login';
+                    } else {
+                        if(this.authData.phone === this.user.phone && this.authData.password === this.user.password) {
+                            this.isLoggedIn = true; localStorage.setItem('isLoggedIn', 'true');
+                        } else alert('Salah data!');
+                    }
+                },
+                buyNumber(c) {
+                    if(this.user.saldo < c.price) return alert('Saldo Kurang!');
+                    this.user.saldo -= c.price;
+                    this.activeOrder = { number: c.pref + Math.floor(Math.random()*90000000), price: c.price, otp: null };
+                },
+                refund() { this.user.saldo += this.activeOrder.price; this.activeOrder = null; },
+                logout() { this.isLoggedIn = false; localStorage.setItem('isLoggedIn', 'false'); },
+                formatRupiah(v) { return new Intl.NumberFormat('id-ID').format(v); },
+                countries: [
+                    { name: 'Indonesia', flag: '🇮🇩', code: '+62', price: 3500, pref: '628' },
+                    { name: 'Malaysia', flag: '🇲🇾', code: '+60', price: 4500, pref: '601' },
+                    { name: 'Venezuela', flag: '🇻🇪', code: '+58', price: 3900, pref: '584' },
+                    { name: 'Korea', flag: '🇰🇷', code: '+82', price: 6000, pref: '821' },
+                    { name: 'China', flag: '🇨🇳', code: '+86', price: 2900, pref: '861' }
+                ]
+            }
+        }
+    </script>
+</body>
+</html>
